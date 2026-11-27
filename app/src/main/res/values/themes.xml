@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 固定深色，纯黑底。不跟随系统，省得浅色模式下黑底黑字。 -->
+    <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar" />
+</resources>

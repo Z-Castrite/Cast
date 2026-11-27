@@ -1,0 +1,80 @@
+{
+  "_说明": "API 形态。只改 api_key 一处即可跑。",
+  "api": {
+    "base_url": "https://api.deepseek.com/v1",
+    "api_key": "",
+    "timeout_sec": 120
+  },
+  "mind": {
+    "_说明": "主意识。tool_mode=true 时它自己决定什么时候查记忆（慢一点但更准）。",
+    "model": "deepseek-chat",
+    "temperature": 0.7,
+    "max_tokens": 2048,
+    "tool_mode": true
+  },
+  "screener": {
+    "_说明": "流式筛选：便宜一档即可，第一版和主意识同款也能跑。",
+    "model": "deepseek-chat",
+    "temperature": 0.1,
+    "max_tokens": 800,
+    "importance_threshold": 0.6
+  },
+  "affect": {
+    "_说明": "情感判断：收到/发出消息各判一次，记忆入库每块判一次。切分制，满分 10 分，0 分不提。用 chat 别用推理模型；非要换推理模型，max_tokens 至少给 500，不然推理链吃光额度、content 返回空。",
+    "enabled": true,
+    "model": "deepseek-chat",
+    "temperature": 0.2,
+    "max_tokens": 300
+  },
+  "memory": {
+    "inject_confirmed": 6,
+    "inject_speculative": 3,
+    "max_entry_chars": 400,
+    "raw_fallback_at": 2,
+    "inject_raw": 2
+  },
+  "loop": {
+    "checkpoint_marker": "⟦CK⟧",
+    "fallback_chunk_chars": 600
+  },
+  "language": {
+    "_说明": "白话→文言→白话。独立一份模型——它只需要语言能力，不需要推理能力，可以比主意识便宜一档。",
+    "enabled": false,
+    "model": "deepseek-chat",
+    "temperature": 0.3,
+    "max_tokens": 1024
+  },
+  "embedding": {
+    "_说明": "向量检索。当前关闭——DeepSeek 没有 embedding 接口，本地模型留待条件允许再上。关了不影响使用。",
+    "enabled": false,
+    "base_url": "http://127.0.0.1:11434",
+    "model": "nomic-embed-text",
+    "timeout": 15
+  },
+  "rerank": {
+    "_说明": "检索重排：一个便宜模型读问题、挑相关记忆。用 chat 不要用 flash——flash 是推理模型，prompt 一长推理链就吃光 max_tokens，content 返回空字符串。",
+    "enabled": true,
+    "model": "deepseek-chat",
+    "k": 4
+  },
+  "voice": {
+    "_说明": "发声。用男声，和系统自带的 Huihui 女声（舞台那个）区分开，免得听着分不清谁在说。",
+    "enabled": true,
+    "voice": "zh-CN-YunjianNeural",
+    "rate": "+0%",
+    "volume": "+0%"
+  },
+  "heartbeat": {
+    "_说明": "主动机制：每 6 小时左右（0.7~1.4 倍随机）醒一次，醒了也不一定说话。无保底。",
+    "enabled": true,
+    "base_hours": 6,
+    "jitter_low": 0.7,
+    "jitter_high": 1.4,
+    "min_idle_minutes": 30
+  },
+  "consolidate": {
+    "_说明": "记忆整理：每天把新记下来的捋一遍——合并重复、处理矛盾、修正分类。只标记不删。",
+    "enabled": true,
+    "every_hours": 24
+  }
+}

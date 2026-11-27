@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bubble_mine">#3B82F6</color>
+    <color name="bubble_other">#374151</color>
+    <color name="bubble_mine_text">#FFFFFF</color>
+    <color name="bubble_other_text">#E5E7EB</color>
+    <color name="emotion">#9CA3AF</color>
+    <color name="time">#6B7280</color>
+</resources>

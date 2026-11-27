@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+def osName = System.getProperty("os.name").toLowerCase()
+def pyExe = osName.contains("windows") ? "python" : "python3"
+
+android {
+    namespace 'com.castrite.twobody'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.castrite.twobody"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "0.1"
+
+        // 只打 arm64：手机是 arm64-v8a，其它架构不要，省体积。
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+
+        python {
+            // 构建机上用的 Python，只用来打包，不参与运行。
+            buildPython pyExe
+            // 白板阶段 0 个 pip 包——核心代码全是标准库。
+            pip {
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
