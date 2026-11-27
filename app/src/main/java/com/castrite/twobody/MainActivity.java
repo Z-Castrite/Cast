@@ -454,10 +454,17 @@ public class MainActivity extends Activity {
             }
             toolbar.setPadding(toolbar.getPaddingLeft(), top,
                     toolbar.getPaddingRight(), toolbar.getPaddingBottom());
-            // 键盘用 translationY 顶上去，不改 padding——避免布局重排打断输入法连接
+            // 键盘弹起：输入区整体上移到键盘顶，列表底部同步让出同样高度。
+            // 不用 padding 硬撑输入区（会重排、断输入法连接），用 translationY。
+            int lift = Math.max(0, ime);
             inputRow.setPadding(inputRow.getPaddingLeft(), inputRow.getPaddingTop(),
                     inputRow.getPaddingRight(), bottom);
-            inputRow.setTranslationY(-Math.max(0, ime - bottom));
+            inputRow.setTranslationY(-lift);
+            View msgs = findViewById(R.id.messages);
+            if (msgs != null) {
+                msgs.setPadding(msgs.getPaddingLeft(), msgs.getPaddingTop(),
+                        msgs.getPaddingRight(), lift);
+            }
             return insets;
         });
     }

@@ -374,10 +374,15 @@ public class GroupChatActivity extends Activity {
             // 免得布局重排把输入法连接重置掉（mServedView=null 那个坑）。
             v.setPadding(0, top, 0, 0);
             if (inputRow != null) {
-                int nav = bottom;
+                int lift = Math.max(0, ime);
                 inputRow.setPadding(inputRow.getPaddingLeft(), inputRow.getPaddingTop(),
-                        inputRow.getPaddingRight(), nav);
-                inputRow.setTranslationY(-Math.max(0, ime - nav));
+                        inputRow.getPaddingRight(), bottom);
+                inputRow.setTranslationY(-lift);
+                View msgs = findViewById(R.id.messages);
+                if (msgs != null) {
+                    msgs.setPadding(msgs.getPaddingLeft(), msgs.getPaddingTop(),
+                            msgs.getPaddingRight(), lift);
+                }
             }
             return insets;
         });
