@@ -124,6 +124,39 @@ public class MainActivity extends Activity {
 
         // 每晚 21 点后写日记
         startDiaryScheduler();
+
+        // 主动搭话：后台攒着的消息，拉出来显示
+        startProactivePoller();
+    }
+
+    /** 每 30 秒问一次引擎：有没有它自己开口说的话。 */
+    private void startProactivePoller() {
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(30 * 1000L);
+                    final PyObject eng = engine;
+                    if (eng == null) {
+                        continue;
+                    }
+                    PyObject out = eng.callAttr("poll");
+                    int n = out.callAttr("__len__").toInt();
+                    for (int i = 0; i < n; i++) {
+                        PyObject m = out.callAttr("__getitem__", i);
+                        String text = m.callAttr("get", "text").toString();
+                        String emo = m.callAttr("get", "emotions_text").toString();
+                        final String e = (emo == null || emo.equals("None") || emo.isEmpty())
+                                ? null : emo;
+                        final String t = (text == null) ? "" : text;
+                        if (!t.isEmpty()) {
+                            ui.post(() -> addMessage(new Message(false, t,
+                                    System.currentTimeMillis(), e), true));
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        }).start();
     }
 
     private void openDiary() {

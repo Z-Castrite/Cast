@@ -14,13 +14,17 @@ App 里没有终端，所以把"一轮怎么跑"单独拿出来：
 """
 
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import affect as affectmod
 import cfg as cfgmod
+import consolidate as consol
+import impromptu
 import memory
 import rerank as rerankmod
 import screener
+import timer as timerlib
 import vision
 from mind import Mind, split_blocks
 
@@ -36,6 +40,11 @@ class Engine:
         self.pool = None
         self._pending = 0
         self._started = False
+        # 主动机制：心跳 + 每日整理 + 攒着等人取的消息
+        self._outbox = []
+        self._last_interaction = 0.0
+        self._hb = None
+        self._hb_cons = None
 
     # ---------------------------------------------------------------- 启动
 
@@ -50,6 +59,8 @@ class Engine:
         self.mind = Mind(self.cfg["api"], self.cfg, self.cfg, self.store, persona)
         self.pool = ThreadPoolExecutor(max_workers=1)
         self._started = True
+        self._last_interaction = time.time()
+        self._start_proactive()
         return self.store.stats()
 
     # ---------------------------------------------------------------- 记忆检索
@@ -120,6 +131,7 @@ class Engine:
         text = (text or "").strip()
         if not text and not image_bytes:
             return {"reply": "", "emotions": {}, "error": "空输入"}
+        self._last_interaction = time.time()
 
         # 视觉通道：先看，再看它带来的情绪。
         # 情绪是必经关卡——看到什么东西，先有感受，再进思考。
@@ -308,6 +320,92 @@ class Engine:
         with open(path, encoding="utf-8") as f:
             return f.read()
 
+    # ---------------------------------------------------------------- 主动机制
+
+    def _start_proactive(self):
+        """心跳（主动搭话）+ 每日整理。和 run.py 里那套一致。"""
+        if self.cfg.get("hb_enabled"):
+            self._hb = timerlib.Heartbeat(
+                self._on_heartbeat,
+                base_hours=self.cfg["hb_base_hours"],
+                jitter=self.cfg["hb_jitter"],
+            ).start()
+        if self.cfg.get("cons_enabled"):
+            self._hb_cons = timerlib.Heartbeat(
+                self._on_consolidate,
+                base_hours=self.cfg["cons_hours"],
+                jitter=(0.95, 1.05),
+            ).start()
+
+    def _on_heartbeat(self):
+        """醒一次：翻记忆，决定说不说。说了就进 outbox 等 App 来取。"""
+        if self.mind is None:
+            return False
+        idle_min = (time.time() - self._last_interaction) / 60.0
+        if idle_min < self.cfg.get("hb_min_idle", 30):
+            return False
+
+        result = impromptu.think(
+            self.cfg,
+            self.store,
+            self.mind.persona or "",
+            hours=idle_min / 60.0,
+            sense="",
+        )
+        if not result or not result.get("speak"):
+            return False
+
+        text = (result.get("text") or "").strip()
+        if not text:
+            return False
+
+        # 主动说的话也要进记忆和索引，不然下次不记得自己说过
+        try:
+            self.store.append_raw("(它自己开口的)", text, text)
+        except Exception:
+            pass
+        for blk in split_blocks(text, max_chars=240):
+            if blk.strip():
+                try:
+                    self._on_block(blk.strip(), speaker="主意识")
+                except Exception:
+                    pass
+
+        emo = {}
+        try:
+            emo = affectmod.judge(self.cfg["api"], self.cfg, text, scene="said")
+        except Exception:
+            pass
+
+        self._outbox.append({
+            "text": text,
+            "emotions": emo.get("emotions") or {},
+            "emotions_text": affectmod.format_emotions(emo.get("emotions") or {}),
+            "kind": "proactive",
+        })
+        self._last_interaction = time.time()
+        return True
+
+    def _on_consolidate(self):
+        try:
+            n = consol.run(self.cfg, self.store)
+            return n > 0
+        except Exception:
+            return False
+
+    def poll(self):
+        """把后台攒下的主动消息取走（App 轮询用）。"""
+        out = self._outbox
+        self._outbox = []
+        return out
+
+    def proactive_status(self):
+        return {
+            "heartbeat": self._hb.status() if self._hb else "关",
+            "consolidate": ("每 " + str(self.cfg.get("cons_hours")) + " 小时")
+            if self._hb_cons else "关",
+        }
+
     def stats(self):
         if not self.store:
             return {}
@@ -315,5 +413,11 @@ class Engine:
 
     def shutdown(self):
         self._started = False
+        for hb in (self._hb, self._hb_cons):
+            if hb:
+                try:
+                    hb.stop()
+                except Exception:
+                    pass
         if self.pool:
             self.pool.shutdown(wait=False)
