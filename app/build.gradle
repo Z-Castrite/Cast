@@ -19,7 +19,7 @@ android {
         // 否则每次构建都是"新版本"，更新检查会天天喊"有新版"
         def buildNo = (System.getenv("BUILD_NUMBER") ?: "1").toInteger()
         versionCode buildNo
-        versionName "0.5"
+        versionName "0.6"
 
         // 只打 arm64：手机是 arm64-v8a，其它架构不要，省体积。
         ndk {
