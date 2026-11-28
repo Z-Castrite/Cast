@@ -65,6 +65,9 @@ public class MainActivity extends Activity {
     private TextView status;
     private TextView nameView;
     private boolean busy = false;
+    private boolean foreground = false;
+    private static final String CH_PROACTIVE = "proactive";
+    private static final int NOTI_PROACTIVE = 9001;
 
     private TextToSpeech tts;
     private boolean ttsReady = false;
@@ -149,8 +152,14 @@ public class MainActivity extends Activity {
                                 ? null : emo;
                         final String t = (text == null) ? "" : text;
                         if (!t.isEmpty()) {
-                            ui.post(() -> addMessage(new Message(false, t,
-                                    System.currentTimeMillis(), e), true));
+                            final boolean fg = foreground;
+                            ui.post(() -> {
+                                addMessage(new Message(false, t,
+                                        System.currentTimeMillis(), e), true);
+                                if (!fg) {
+                                    notifyProactive(t, e);
+                                }
+                            });
                         }
                     }
                 } catch (Throwable ignored) {
@@ -215,6 +224,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        foreground = true;
         // 从设置页改名回来，顶栏要跟上
         if (agentDb != null && nameView != null) {
             Agent a = agentDb.get(currentAgentId);
@@ -224,6 +234,12 @@ public class MainActivity extends Activity {
                 adapter.notifyDataSetChanged();
             }
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        foreground = false;
     }
 
     @Override
@@ -708,6 +724,40 @@ public class MainActivity extends Activity {
                 });
             }
         }).start();
+    }
+
+    /** App 在后台时，它说的话靠通知提醒。 */
+    private void notifyProactive(String text, String emotions) {
+        try {
+            android.app.NotificationManager nm =
+                    (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            if (nm == null) {
+                return;
+            }
+            if (Build.VERSION.SDK_INT >= 26) {
+                android.app.NotificationChannel ch = new android.app.NotificationChannel(
+                        CH_PROACTIVE, "它主动说的话",
+                        android.app.NotificationManager.IMPORTANCE_DEFAULT);
+                nm.createNotificationChannel(ch);
+            }
+            android.app.Notification.Builder b = (Build.VERSION.SDK_INT >= 26)
+                    ? new android.app.Notification.Builder(this, CH_PROACTIVE)
+                    : new android.app.Notification.Builder(this);
+            b.setSmallIcon(android.R.drawable.ic_dialog_info);
+            b.setContentTitle(nameView.getText() + " 说");
+            b.setContentText(text.length() > 80 ? text.substring(0, 80) + "…" : text);
+            b.setAutoCancel(true);
+            if (emotions != null && !emotions.isEmpty()) {
+                b.setSubText(emotions);
+            }
+            Intent i = new Intent(this, MainActivity.class);
+            i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            b.setContentIntent(android.app.PendingIntent.getActivity(this, 0, i,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT
+                            | android.app.PendingIntent.FLAG_IMMUTABLE));
+            nm.notify(NOTI_PROACTIVE, b.build());
+        } catch (Throwable ignored) {
+        }
     }
 
     private void pickImage() {

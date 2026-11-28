@@ -89,6 +89,32 @@
             android:textColor="#FFFFFF"
             android:textColorHint="#555555" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="主动机制"
+            android:textColor="#AAAAAA"
+            android:textSize="12sp" />
+
+        <Switch
+            android:id="@+id/hb_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="主动搭话（每隔几小时醒一次，不一定说）"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+
+        <Switch
+            android:id="@+id/cons_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="整理记忆（每天把新记的捋一遍）"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+
         <Button
             android:id="@+id/save"
             android:layout_width="match_parent"

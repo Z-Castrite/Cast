@@ -8,6 +8,7 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import org.json.JSONObject;
@@ -29,6 +30,8 @@ public class SettingsActivity extends Activity {
     private EditText personaInput;
     private EditText nameInput;
     private EditText userInput;
+    private Switch hbSwitch;
+    private Switch consSwitch;
     private TextView tip;
     private long agentId;
     private File dir;
@@ -49,11 +52,23 @@ public class SettingsActivity extends Activity {
         personaInput = findViewById(R.id.persona);
         nameInput = findViewById(R.id.agent_name);
         userInput = findViewById(R.id.user_name);
+        hbSwitch = findViewById(R.id.hb_switch);
+        consSwitch = findViewById(R.id.cons_switch);
         tip = findViewById(R.id.tip);
 
         Agent me = agentDb.get(agentId);
         nameInput.setText(me == null ? "" : me.name);
         userInput.setText(read(new File(getFilesDir(), "user_name.txt")));
+
+        try {
+            JSONObject o = new JSONObject(read(new File(dir, "config.json")));
+            keyInput.setText(o.getJSONObject("api").optString("api_key", ""));
+            JSONObject hb = o.optJSONObject("heartbeat");
+            hbSwitch.setChecked(hb == null || hb.optBoolean("enabled", true));
+            JSONObject cons = o.optJSONObject("consolidate");
+            consSwitch.setChecked(cons == null || cons.optBoolean("enabled", true));
+        } catch (Exception ignored) {
+        }
 
         try {
             JSONObject o = new JSONObject(read(new File(dir, "config.json")));
@@ -107,7 +122,7 @@ public class SettingsActivity extends Activity {
                 agentDb.rename(agentId, newName);
             }
 
-            // 共用 key：所有智能体都写一遍（记忆还是各自的）
+            // 共用 key + 主动开关：所有智能体都写一遍（记忆还是各自的）
             String key = keyInput.getText().toString().trim();
             for (Agent a : agentDb.all()) {
                 File f = new File(getFilesDir(), "agents/a" + a.id + "/config.json");
@@ -117,6 +132,12 @@ public class SettingsActivity extends Activity {
                 try {
                     JSONObject o = new JSONObject(read(f));
                     o.getJSONObject("api").put("api_key", key);
+                    if (o.optJSONObject("heartbeat") != null) {
+                        o.getJSONObject("heartbeat").put("enabled", hbSwitch.isChecked());
+                    }
+                    if (o.optJSONObject("consolidate") != null) {
+                        o.getJSONObject("consolidate").put("enabled", consSwitch.isChecked());
+                    }
                     write(f, o.toString(2));
                 } catch (Exception ignored) {
                 }
