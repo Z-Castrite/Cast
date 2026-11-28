@@ -31,9 +31,27 @@ android {
         }
     }
 
+    signingConfigs {
+        fixed {
+            // CI 会先把 KEYSTORE_BASE64 解成 signing/ta.p12；本地有就用本地那份。
+            // 固定签名的意义：新版本能覆盖安装，数据不用卸载重装。
+            def ks = rootProject.file("signing/ta.p12")
+            if (ks.exists()) {
+                storeFile ks
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "ta-signing-2026"
+                keyAlias "ta"
+                keyPassword System.getenv("KEYSTORE_PASSWORD") ?: "ta-signing-2026"
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.fixed
+        }
+        debug {
+            signingConfig signingConfigs.fixed
         }
     }
 
@@ -41,4 +59,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    // FileProvider：应用内更新下载完的 APK 要交给系统安装器
+    implementation 'androidx.core:core:1.13.1'
 }

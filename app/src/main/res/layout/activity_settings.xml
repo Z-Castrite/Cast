@@ -116,6 +116,13 @@
             android:textSize="14sp" />
 
         <Button
+            android:id="@+id/update"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="检查更新" />
+
+        <Button
             android:id="@+id/save"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

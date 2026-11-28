@@ -81,6 +81,11 @@ public class SettingsActivity extends Activity {
         Button wipe = findViewById(R.id.wipe);
         save.setOnClickListener(v -> save());
         wipe.setOnClickListener(v -> wipe());
+        findViewById(R.id.update).setOnClickListener(v -> {
+            tip.setText("检查更新…");
+            UpdateChecker.checkAndInstall(SettingsActivity.this,
+                    msg -> runOnUiThread(() -> tip.setText(msg)));
+        });
     }
 
     private void applyInsets() {

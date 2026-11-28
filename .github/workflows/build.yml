@@ -33,7 +33,15 @@ jobs:
           ls "$ANDROID_HOME/platforms" || true
           ls "$ANDROID_HOME/build-tools" || true
 
+      - name: Decode signing keystore
+        run: |
+          mkdir -p signing
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > signing/ta.p12
+          ls -l signing
+
       - name: Build debug APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
