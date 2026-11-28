@@ -55,6 +55,21 @@ public final class UpdateChecker {
                     cb.onStatus("这个 release 没有包");
                     return;
                 }
+                // 先比版本：tag 是 v0.5 这种，当前是 0.5
+                String latestVer = tag.startsWith("v") ? tag.substring(1) : tag;
+                String curVer;
+                try {
+                    curVer = activity.getPackageManager()
+                            .getPackageInfo(activity.getPackageName(), 0).versionName;
+                } catch (Exception e) {
+                    curVer = "";
+                }
+                if (!latestVer.isEmpty() && latestVer.equals(curVer)) {
+                    cb.onStatus("已是最新（" + curVer + "）");
+                    return;
+                }
+                cb.onStatus("发现新版本 " + tag + "（当前 " + curVer + "）");
+
                 String apkUrl = null;
                 String apkName = "ta-update.apk";
                 for (int i = 0; i < assets.length(); i++) {
@@ -117,8 +132,11 @@ public final class UpdateChecker {
 
     private static void install(Activity activity, File apk) {
         try {
+            android.util.Log.i("UpdateChecker", "install: " + apk.getAbsolutePath()
+                    + " exists=" + apk.exists() + " len=" + apk.length());
             if (Build.VERSION.SDK_INT >= 26
                     && !activity.getPackageManager().canRequestPackageInstalls()) {
+                android.util.Log.i("UpdateChecker", "no install permission, opening settings");
                 // 没给「安装未知应用」就去设置页
                 Intent i = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                         Uri.parse("package:" + activity.getPackageName()));
@@ -129,13 +147,15 @@ public final class UpdateChecker {
                     activity,
                     activity.getPackageName() + ".fileprovider",
                     apk);
+            android.util.Log.i("UpdateChecker", "uri: " + uri);
             Intent i = new Intent(Intent.ACTION_VIEW);
             i.setDataAndType(uri, "application/vnd.android.package-archive");
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
                     | Intent.FLAG_ACTIVITY_NEW_TASK);
             activity.startActivity(i);
+            android.util.Log.i("UpdateChecker", "installer launched");
         } catch (Exception e) {
-            // ignore
+            android.util.Log.e("UpdateChecker", "install failed", e);
         }
     }
 }

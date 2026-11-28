@@ -14,8 +14,12 @@ android {
         applicationId "com.castrite.twobody"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "0.1"
+        // versionCode 用 CI 构建号（覆盖安装靠它递增）
+        // versionName 跟 release 走：发版时手动改这里，别用构建号——
+        // 否则每次构建都是"新版本"，更新检查会天天喊"有新版"
+        def buildNo = (System.getenv("BUILD_NUMBER") ?: "1").toInteger()
+        versionCode buildNo
+        versionName "0.5"
 
         // 只打 arm64：手机是 arm64-v8a，其它架构不要，省体积。
         ndk {
@@ -33,14 +37,17 @@ android {
 
     signingConfigs {
         fixed {
-            // CI 会先把 KEYSTORE_BASE64 解成 signing/ta.p12；本地有就用本地那份。
-            // 固定签名的意义：新版本能覆盖安装，数据不用卸载重装。
             def ks = rootProject.file("signing/ta.p12")
+            println "SIGNING: keystore=" + ks + " exists=" + ks.exists()
             if (ks.exists()) {
                 storeFile ks
                 storePassword System.getenv("KEYSTORE_PASSWORD") ?: "ta-signing-2026"
                 keyAlias "ta"
                 keyPassword System.getenv("KEYSTORE_PASSWORD") ?: "ta-signing-2026"
+                // ColorOS 的安装界面只认 v1（JAR）签名，必须三档都开
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
             }
         }
     }
