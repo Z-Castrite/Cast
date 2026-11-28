@@ -55,8 +55,12 @@ public final class UpdateChecker {
                     cb.onStatus("这个 release 没有包");
                     return;
                 }
-                // 先比版本：tag 是 v0.5 这种，当前是 0.5
+                // 先比版本：tag 是 v0.5 / v0.5-clean 这种，当前是 0.5
                 String latestVer = tag.startsWith("v") ? tag.substring(1) : tag;
+                int dash = latestVer.indexOf('-');
+                if (dash > 0) {
+                    latestVer = latestVer.substring(0, dash);
+                }
                 String curVer;
                 try {
                     curVer = activity.getPackageManager()
